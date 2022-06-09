@@ -1,18 +1,20 @@
+from datetime import datetime
 import pathlib
 import pyspark.sql.functions as F
 import sys
 
-project_dir = pathlib.Path(__file__).parent.resolve().parent.resolve()
+test_dir = pathlib.Path(__file__).parent.resolve()
+project_dir = test_dir.parent.resolve()
 sys.path.insert(0, str(project_dir))
 print(sys.path)
 
 from etl import create_songs_table, create_artists_table, create_users_table, create_time_table, create_songplays_table
 
-song_data_path = 'data/song_data'
-log_data_path = 'data/log_data'
-output_path = 'data/data_lake'
+song_data_path = f'{test_dir}/data/song_data'
+log_data_path = f'{test_dir}/data/log_data'
+output_path = f'{test_dir}/data/data_lake'
 
-def test_create_songs_table(spark):
+def test_create_songs_table(spark, clear_data_lake):
     # load song dataset
     song_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(song_data_path)
     # create songs table
@@ -28,7 +30,7 @@ def test_create_songs_table(spark):
     # almost easier to read parquet in notebook and visually inspect it
 
 
-def test_create_artists_table(spark):
+def test_create_artists_table(spark, clear_data_lake):
     song_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(song_data_path)
     create_artists_table(song_dataset, output_path)
     artists_table = spark.read.parquet(f"{output_path}/artists.parquet")
@@ -36,7 +38,7 @@ def test_create_artists_table(spark):
         assert col in ['artist_id', 'name', 'location', 'latitude', 'longitude']
 
 
-def test_create_users_table(spark):
+def test_create_users_table(spark, clear_data_lake):
     log_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(log_data_path)
     log_dataset = log_dataset.filter((log_dataset.page == 'NextSong'))
     create_users_table(log_dataset, output_path)
@@ -45,10 +47,10 @@ def test_create_users_table(spark):
         assert col in ['user_id', 'first_name', 'last_name', 'gender', 'level']
 
 
-def test_create_time_table(spark):
+def test_create_time_table(spark, clear_data_lake):
     log_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(log_data_path)
     log_dataset = log_dataset.filter((log_dataset.page == 'NextSong'))
-    get_timestamp = F.udf(lambda x: (x.cast('float')/1000).cast("timestamp"))
+    get_timestamp = F.udf(lambda x: datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d %H:%M:%S.%f'))
     log_dataset = log_dataset.withColumn('start_time', get_timestamp(log_dataset.ts))
     create_time_table(log_dataset, output_path)
     time_table = spark.read.parquet(f"{output_path}/time.parquet")
@@ -56,11 +58,11 @@ def test_create_time_table(spark):
         assert col in ['start_time', 'hour', 'day', 'week', 'month', 'year', 'weekday']
 
 
-def test_create_songplays_table(spark):
+def test_create_songplays_table(spark, clear_data_lake):
     song_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(song_data_path)
     log_dataset = spark.read.format("json").option("recursiveFileLookup", "true").load(log_data_path)
     log_dataset = log_dataset.filter((log_dataset.page == 'NextSong'))
-    get_timestamp = F.udf(lambda x: (x.cast('float')/1000).cast("timestamp"))
+    get_timestamp = F.udf(lambda x: datetime.fromtimestamp(x/1000).strftime('%Y-%m-%d %H:%M:%S.%f'))
     log_dataset = log_dataset.withColumn('start_time', get_timestamp(log_dataset.ts))
     create_songplays_table(spark, song_dataset, log_dataset, output_path)
     songplays_table = spark.read.parquet(f"{output_path}/songplays.parquet")

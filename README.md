@@ -16,17 +16,28 @@ with spark in distributed mode
     - Choose existing cluster => the one you just created
     - default setting for "AWS service role" => "EMR_Notebooks_DefaultRole" or "Create default role" if you haven't done it before
     - keep the rest of the settings
-- i will use my own s3 bucket for storing parkay files. access to this bucket will be blocked by users that aren't under my account. this means that the person testing this code is responsible for
+- i will use my own s3 bucket for storing parquet files. access to this bucket will be blocked by users that aren't under my account. this means that the person testing this code is responsible for
 setting a new location on an s3 bucket that they have permissions for instead of mine
 
 # **INSTRUCTIONS**
-Launch EMR Cluster
-Create Notebook in EMR Console
-Run etl.py:
-    -"python etl.py --input_path [location of s3 bucket containing song and log data] --output_path [where to write parquet files] --debug_mode [True if user wishes to run etl with reduced song dataset]"
-NOTE: i had to write my files to my personal aws bucket since i ran out of credits in federated udacity account
+- Create an IAM user with the following permissions and store its access key and secret:
+    - AdministratorAccess
+    - AmazonS3FullAccess
+    - AmazonEC2FullAccess
+    - AmazonSSMFullAccess
+    - AmazonEMRFullAccessPolicy_v2
+- Launch EMR Cluster
+- Create Notebook in EMR Console
+- adjust dl.cfg with desired values
+    - AWS_ACCESS_KEY_ID: access key from IAM user you created
+    - AWS_SECRET_ACCESS_KEY= secret from IAM user you created
+    - INPUT_DATA: default set to s3a://udacity-dend/
+    - OUTPUT_DATA: set to an s3 bucket location that you control (i had to write my files to my personal aws bucket since i ran out of credits in federated udacity account)
+- copy etl.py and dl.cfg to EMR cluster
+- run etl.py
 
 # **MANIFEST**
 etl.py
 dl.cfg
 README.md (this file)
+tests/
