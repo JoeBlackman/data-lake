@@ -10,8 +10,8 @@ print(sys.path)
 
 from etl import create_songs_table, create_artists_table, create_users_table, create_time_table, create_songplays_table
 
-song_data_path = f'{test_dir}/data/song-data'
-log_data_path = f'{test_dir}/data/log-data'
+song_data_path = f'{test_dir}/data/song_data'
+log_data_path = f'{test_dir}/data/log_data'
 output_path = f'{test_dir}/data/data_lake'
 
 def test_create_songs_table(spark, clear_data_lake):
