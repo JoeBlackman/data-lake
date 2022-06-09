@@ -8,7 +8,6 @@ from pyspark.sql.functions import year, month, dayofmonth, hour, weekofyear, day
 import sys
 
 from sqlalchemy import desc
-from yaml import parse
 
 
 config = configparser.ConfigParser()
@@ -278,12 +277,12 @@ def create_songs_table(song_dataset, output_path):
     """
     # extract columns to create songs table
     songs_table = song_dataset.select(
-        'song_id', 
-        'title', 
-        'artist_id', 
-        'year', 
-        'duration'
-        ).dropDuplicates('song_id')
+        col('song_id'), 
+        col('title'), 
+        col('artist_id'), 
+        col('year'), 
+        col('duration')
+        ).dropDuplicates(['song_id'])
     
     # write songs table to parquet files partitioned by year and artist
     songs_table.write.parquet(f"{output_path}/songs.parquet")
@@ -302,12 +301,12 @@ def create_artists_table(song_dataset, output_path):
     """
     # extract columns to create artists table
     artists_table_df = song_dataset.select(
-        'artist_id', 
-        'name', 
-        'location', 
-        'latitude', 
-        'longitude'
-        ).dropDuplicates('artist_id')
+        col('artist_id'), 
+        col('artist_name').alias('name'), 
+        col('artist_location').alias('location'), 
+        col('artist_latitude').alias('latitude'), 
+        col('artist_longitude').alias('longitude')
+        ).dropDuplicates(['artist_id'])
     
     # write artists table to parquet files
     artists_table_df.write.parquet(f"{output_path}/artists.parquet")
@@ -326,12 +325,12 @@ def create_users_table(log_dataset, output_path):
     """
     # extract columns for users table    
     users_table_df = log_dataset.select(
-        'userId as user_id', 
-        'firstName as first_name', 
-        'lastName as last_name', 
-        'gender', 
-        'level'
-        ).dropDuplicates()
+        col('userId').alias('user_id'), 
+        col('firstName').alias('first_name'), 
+        col('lastName').alias('last_name'), 
+        col('gender'), 
+        col('level')
+        ).dropDuplicates(['user_id'])
 
     # write users table to parquet files
     users_table_df.write.parquet(f"{output_path}/users.parquet")
@@ -400,7 +399,7 @@ def create_songplays_table(spark, song_dataset, log_dataset, output_path):
         log_dataset.sessionId AS session_id,
         log_dataset.location AS location, 
         log_dataset.userAgent AS user_agent,
-        row_number() AS songplay_id
+        row_number() OVER (ORDER BY start_time) AS songplay_id,
         year(log_dataset.start_time) AS year,
         month(log_dataset.start_time) AS month
     FROM log_dataset
